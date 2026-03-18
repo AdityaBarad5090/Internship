@@ -4,12 +4,39 @@ $conn = new mysqli("localhost", "root", "", "demo");
 if (!$conn) {
     die("Connection failed");
 }
+
+if (isset($_POST['getdata'])) {
+    $search = $_POST['search'] ?? '';
+
+    if ($search != '') {
+        $query = "SELECT * FROM selects WHERE name LIKE '%$search%'";
+    } else {
+        $query = "SELECT * FROM selects";
+    }
+
+    $result = mysqli_query($conn, $query);
+
+    $data = [];
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $data[] = [
+            "id" => $row['value'],
+            "text" => $row['name']
+        ];
+    }
+    echo json_encode([
+        'results' => $data
+    ]);
+    exit;
+}
+
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>Dcomentation</title>
+    <title>Documentation</title>
 
     <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -20,23 +47,15 @@ if (!$conn) {
 
 <body>
     <div>
-        <div class="d-flex flex-column align-items-center" style="margin-top: 100px;">
+
+        <div class="d-flex flex-column align-items-center" style="margin-top:100px;">
+
             <select id="singledrop" style="width:500px" class="form-control">
-
-                <?php
-                $query = "SELECT * FROM selects";
-                $result = mysqli_query($conn, $query);
-
-                while ($row = mysqli_fetch_assoc($result)) {  ?>
-
-                    <option value="<?php echo $row['value']; ?>">
-                        <?php echo $row['name']; ?>
-                    </option>
-
-                <?php } ?>
             </select>
 
         </div>
+
+
         <div class="d-flex justify-content-center mt-3 gap-2">
             <button id="setvalue" class="btn btn-secondary">Set California</button>
             <button id="open" class="btn btn-secondary">Open</button>
@@ -45,39 +64,66 @@ if (!$conn) {
             <button id="destroy" class="btn btn-secondary">Destroy</button>
         </div>
 
+
         <div class="d-flex flex-column align-items-center mt-5">
+
             <select id="multidrop" multiple style="width:500px">
-                <?php
-                $query = "SELECT * FROM selects"; 
-                $result = mysqli_query($conn, $query);
-
-                while ($row = mysqli_fetch_assoc($result)) { ?>
-
-                    <option value="<?php echo $row['value']; ?>">
-                        <?php echo $row['name']; ?>
-                    </option>
-     
-                <?php } ?>
             </select>
+
         </div>
 
+
         <div class="d-flex justify-content-center mt-3 gap-2">
-            <button id="multiselect" class="btn btn-secondary">Set California & Alabama</button>
+            <button id="multisetvalue" class="btn btn-secondary">Set California & Alabama</button>
             <button id="clear" class="btn btn-secondary">Clear</button>
         </div>
 
+        <div class="d-flex justify-content-center mt-3">
+            <button id="save" class="btn btn-primary">Save</button>
+        </div>
+
     </div>
+
+
     <script>
         $(document).ready(function() {
 
             $('#singledrop').select2({
+                ajax: {
+                    url: "",
+                    type: "POST",
+                    dataType: "json",   
+                    delay:700,
+                    data: function(params) {
+                        return {
+                            getdata: 1,
+                            search: params.term,
+                        };
+                    },
+                    processResults: function(data) {
+                        return data;
+                    }
+                },
                 placeholder: "Select State",
-                allowClear: true
             });
 
             $('#multidrop').select2({
+                ajax: {
+                    url: "",
+                    type: "POST",
+                    dataType: "json",
+                    delay:700,
+                    data: function(params) {
+                        return {
+                            getdata: 1,
+                            search: params.term
+                        };
+                    },
+                    processResults: function(data) {
+                        return data;
+                    }
+                },
                 placeholder: "Select State",
-                allowClear: true
             });
 
             $('#open').click(function() {
@@ -89,7 +135,8 @@ if (!$conn) {
             });
 
             $('#setvalue').click(function() {
-                $('#singledrop').val('CA').trigger('change');
+                var option = new Option("California", "CA", true, true);
+                $('#singledrop').append(option).val('CA').trigger('change');
             });
 
             $('#destroy').click(function() {
@@ -98,20 +145,43 @@ if (!$conn) {
 
             $('#init').click(function() {
                 $('#singledrop').select2({
-                    placeholder: "Select City",
-                    allowClear: true
+                    ajax: {
+                        url: "",
+                        type: "POST",
+                        dataType: "json",
+                        data: function(params) {
+                            return {
+                                getdata: 1,
+                                search: params.term
+                            };
+                        },
+                        processResults: function(data) {
+                            return data;
+                        }
+                    },
+                    placeholder: "Select State",
                 });
             });
 
-            $('#multiselect').click(function() {
-                $('#multidrop').val(['CA', 'AL']).trigger('change');
+            $('#multisetvalue').click(function() {
+                var option1 = new Option("California", "CA", true, true);
+                var option2 = new Option("Alabama", "AL", true, true);
+                $('#multidrop').append(option1).append(option2).val(['CA', 'AL']).trigger('change');
             });
- 
+
             $('#clear').click(function() {
                 $('#multidrop').val(null).trigger('change');
             });
-  
+
+            $('#save').click(function() {
+                var singleval = $('#singledrop').val();
+                var multival = $('#multidrop').val();
+
+                console.log("single value:", singleval);
+                console.log("multi value:", multival);
+            });
         });
     </script>
 </body>
-</html> 
+
+</html>
